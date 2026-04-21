@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "../peims"
+		},
+		{
+			"path": "../eposter"
+		},
+		{
+			"path": "."
+		}
+	],
+	"settings": {}
+}
