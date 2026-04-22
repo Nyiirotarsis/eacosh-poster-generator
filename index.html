@@ -12,14 +12,12 @@ body {
     background: #fff8f0;
 }
 
-/* HEADER */
 .header {
     background: linear-gradient(90deg, #d4af37, #198754);
     color: white;
     padding: 15px 20px;
 }
 
-/* SIDEBAR */
 .sidebar {
     height: calc(100vh - 80px);
     overflow-y: auto;
@@ -27,7 +25,6 @@ body {
     background: #fff;
 }
 
-/* CANVAS */
 canvas {
     border: 3px solid #d4af37;
     width: 100%;
@@ -37,7 +34,6 @@ canvas {
     box-shadow: 0 8px 25px rgba(0,0,0,0.15);
 }
 
-/* LABELS */
 .tool-label {
     font-weight: 600;
     margin-top: 10px;
@@ -50,7 +46,7 @@ canvas {
 
 <!-- HEADER -->
 <div class="header d-flex justify-content-between align-items-center">
-    <h5 class="mb-0">INNUGURATION EACOSH CONFERENCE 2026</h5>
+    <h5 class="mb-0">INAUGURAL EACOSH CONFERENCE 2026</h5>
     <button class="btn btn-dark" onclick="downloadPoster()">Download Poster</button>
 </div>
 
@@ -62,20 +58,14 @@ canvas {
 
 <h5>Editor Tools</h5>
 
-<!-- COUNTER -->
-<p class="mt-2">
-<strong>Posters Created:</strong> <span id="count">0</span>
-</p>
+<p><strong>Posters Created:</strong> <span id="count">0</span></p>
 
-<!-- NAME -->
 <label class="tool-label">Full Name</label>
 <input type="text" id="name" class="form-control mb-3" placeholder="Enter full name">
 
-<!-- TITLE -->
 <label class="tool-label">Title / Designation</label>
 <input type="text" id="title" class="form-control mb-3" placeholder="e.g. Engineer, Student, CEO">
 
-<!-- FONT -->
 <label class="tool-label">Font</label>
 <select id="font" class="form-select mb-2">
 <option>Arial</option>
@@ -84,15 +74,12 @@ canvas {
 <option>Courier New</option>
 </select>
 
-<!-- FONT SIZE -->
 <label class="tool-label">Name Font Size</label>
 <input type="range" id="fontSize" min="30" max="80" value="50" class="form-range">
 
-<!-- IMAGE -->
 <label class="tool-label">Upload Profile Photo</label>
 <input type="file" id="upload" class="form-control mb-3">
 
-<!-- CIRCLE SIZE -->
 <label class="tool-label">Photo Size</label>
 <input type="range" id="circleSize" min="100" max="300" value="180" class="form-range">
 
@@ -128,46 +115,92 @@ function draw() {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    /* 🌈 BACKGROUND (GOLD + WHITE + GREEN) */
+    /* BACKGROUND */
     let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    gradient.addColorStop(0, "#d4af37");   // gold
-    gradient.addColorStop(0.4, "#ffffff"); // white
-    gradient.addColorStop(1, "#198754");   // green
+    gradient.addColorStop(0, "#d4af37");
+    gradient.addColorStop(0.4, "#ffffff");
+    gradient.addColorStop(1, "#198754");
 
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    /* HEADER TEXT */
-    ctx.fillStyle = "#fff";
-    ctx.font = "bold 36px Arial";
-    ctx.fillText("EACOSH CONFERENCE 2026", 180, 120);
+    /* HEADER */
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 34px Arial";
+    ctx.fillText("INAUGURAL EACOSH CONFERENCE", canvas.width / 2, 100);
 
-    /* GREEN UNDERLINE */
+    ctx.font = "bold 24px Arial";
+    ctx.fillText("27 – 28 August 2026", canvas.width / 2, 140);
+
+    /* THEME */
+    ctx.textAlign = "left";
     ctx.fillStyle = "#198754";
-    ctx.fillRect(180, 140, 540, 6);
+    ctx.font = "bold 22px Arial";
+    ctx.fillText("THEME:", 80, 200);
+
+    ctx.fillStyle = "#000";
+    ctx.font = "20px Arial";
+    ctx.fillText("United for A Safer Africa", 80, 240);
+    ctx.fillText("Build Strategic Alliances & Leverage", 80, 270);
+    ctx.fillText("Technology for Sustainable Development", 80, 300);
+
+    /* VENUE */
+    ctx.fillStyle = "#198754";
+    ctx.font = "bold 22px Arial";
+    ctx.fillText("VENUE:", 80, 360);
+
+    ctx.fillStyle = "#000";
+    ctx.font = "20px Arial";
+    ctx.fillText("Imperial Royale Kampala", 80, 390);
 
     /* PROFILE IMAGE */
     if (profileImg.src) {
         ctx.save();
         ctx.beginPath();
-        ctx.arc(450, 500, circleSize / 2, 0, Math.PI * 2);
+        ctx.arc(canvas.width / 2, 550, circleSize / 2, 0, Math.PI * 2);
         ctx.clip();
-        ctx.drawImage(profileImg, 350, 400, circleSize, circleSize);
+        ctx.drawImage(profileImg, (canvas.width/2)-(circleSize/2), 500, circleSize, circleSize);
         ctx.restore();
     }
 
     /* NAME */
+    ctx.textAlign = "center";
     ctx.fillStyle = "#000";
     ctx.font = "bold " + fontSize + "px " + document.getElementById("font").value;
-    ctx.fillText(name, 300, 820);
+    ctx.fillText(name, canvas.width / 2, 820);
 
     /* TITLE */
     ctx.fillStyle = "#198754";
-    ctx.font = "italic 32px Arial";
-    ctx.fillText(title, 300, 870);
+    ctx.font = "italic 30px Arial";
+    ctx.fillText(title, canvas.width / 2, 870);
+
+    /* ATTENDING */
+    ctx.fillStyle = "#000";
+    ctx.font = "italic 26px Arial";
+    ctx.fillText("I WILL BE", canvas.width / 2, 940);
+
+    ctx.fillStyle = "#198754";
+    ctx.font = "bold 38px Arial";
+    ctx.fillText("ATTENDING", canvas.width / 2, 990);
+
+    ctx.fillStyle = "#000";
+    ctx.font = "bold 26px Arial";
+    ctx.fillText("EACOSH CONFERENCE 2026", canvas.width / 2, 1040);
+
+    /* FOOTER */
+    ctx.fillStyle = "#198754";
+    ctx.fillRect(0, 1080, canvas.width, 120);
+
+    ctx.fillStyle = "#fff";
+    ctx.font = "20px Arial";
+    ctx.fillText("www.eacosha.com", canvas.width / 2, 1120);
+
+    ctx.font = "18px Arial";
+    ctx.fillText("Facebook | YouTube | X | LinkedIn", canvas.width / 2, 1160);
 }
 
-/* IMAGE UPLOAD */
+/* EVENTS */
 document.getElementById("upload").addEventListener("change", function(e){
     const reader = new FileReader();
     reader.onload = function(event){
@@ -178,31 +211,27 @@ document.getElementById("upload").addEventListener("change", function(e){
     reader.readAsDataURL(e.target.files[0]);
 });
 
-/* NAME */
 document.getElementById("name").addEventListener("input", function(e){
     name = e.target.value;
     draw();
 });
 
-/* TITLE */
 document.getElementById("title").addEventListener("input", function(e){
     title = e.target.value;
     draw();
 });
 
-/* FONT SIZE */
 document.getElementById("fontSize").addEventListener("input", function(e){
     fontSize = e.target.value;
     draw();
 });
 
-/* CIRCLE SIZE */
 document.getElementById("circleSize").addEventListener("input", function(e){
     circleSize = e.target.value;
     draw();
 });
 
-/* DOWNLOAD + COUNTER */
+/* DOWNLOAD */
 function downloadPoster(){
     const link = document.createElement("a");
     link.download = "EACOSH-Poster.png";
