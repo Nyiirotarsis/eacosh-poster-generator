@@ -30,6 +30,9 @@ canvas {
     border-radius:12px;
     cursor:grab;
 }
+canvas:active {
+    cursor:grabbing;
+}
 </style>
 </head>
 
@@ -64,11 +67,10 @@ canvas {
 
 <label>Photo Size</label>
 <input type="range" id="circleSize" min="100" max="300" value="180">
-<label>Image Position X</label>
-<input type="range" id="imgOffsetX" min="-200" max="200" value="0" class="form-range">
 
-<label>Image Position Y</label>
-<input type="range" id="imgOffsetY" min="-200" max="200" value="0" class="form-range">
+<label>Zoom Image</label>
+<input type="range" id="zoom" min="0.5" max="2" step="0.1" value="1">
+
 </div>
 
 <!-- CANVAS -->
@@ -80,9 +82,6 @@ canvas {
 </div>
 
 <script>
-let imgOffsetX = 0;
-let imgOffsetY = 0;
-let zoom = 1;
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
@@ -90,24 +89,32 @@ const ctx = canvas.getContext("2d");
 let nameText = "Your Name";
 let titleText = "Your Title";
 let fontSize = 50;
+let circleSize = 180;
 
+let zoom = 1;
+
+/* IMAGE */
 let profileImg = new Image();
-let bg = new Image();
+let imageLoaded = false;
 
-/* 🔥 USE RAW GITHUB IMAGE (IMPORTANT FIX) */
+/* BACKGROUND */
+let bg = new Image();
 bg.crossOrigin = "anonymous";
 bg.src = "https://raw.githubusercontent.com/Nyiirotarsis/eacosh-poster-generator/main/poster-bg.jpg.jpeg";
 
-/* POSITION (for drag system) */
+/* POSITIONS */
 let namePos = {x:450,y:800};
 let titlePos = {x:450,y:860};
 let imagePos = {x:450,y:500};
 
-let circleSize = 180;
+/* IMAGE DRAG OFFSET (inside circle) */
+let imgOffset = {x:0, y:0};
 
-/* DRAG */
-let selected = null;
+/* DRAGGING */
 let dragging = false;
+let dragType = null;
+let lastX = 0;
+let lastY = 0;
 
 /* DRAW */
 function draw(){
@@ -122,37 +129,38 @@ function draw(){
     ctx.fillStyle="rgba(255,255,255,0.6)";
     ctx.fillRect(0,0,canvas.width,canvas.height);
 
-    /* IMAGE */
-if(profileImg.src){
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(imagePos.x, imagePos.y, circleSize/2, 0, Math.PI*2);
-    ctx.clip();
+    /* IMAGE IN CIRCLE */
+    if(imageLoaded){
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(imagePos.x, imagePos.y, circleSize/2, 0, Math.PI*2);
+        ctx.clip();
 
-    let size = circleSize * zoom;
+        let size = circleSize * zoom;
 
-    ctx.drawImage(
-        profileImg,
-        imagePos.x - size/2 + imgOffsetX,
-        imagePos.y - size/2 + imgOffsetY,
-        size,
-        size
-    );
+        ctx.drawImage(
+            profileImg,
+            imagePos.x - size/2 + imgOffset.x,
+            imagePos.y - size/2 + imgOffset.y,
+            size,
+            size
+        );
 
-    ctx.restore();
-}
+        ctx.restore();
+    }
+
     /* NAME */
     ctx.textAlign="center";
     ctx.fillStyle="#000";
     ctx.font="bold "+fontSize+"px Arial";
-    ctx.fillText(nameText,namePos.x,namePos.y);
+    ctx.fillText(nameText, namePos.x, namePos.y);
 
     /* TITLE */
     ctx.fillStyle="#198754";
     ctx.font="italic 30px Arial";
-    ctx.fillText(titleText,titlePos.x,titlePos.y);
+    ctx.fillText(titleText, titlePos.x, titlePos.y);
 
-    /* STATIC TEXT */
+    /* STATIC */
     ctx.fillStyle="#000";
     ctx.font="italic 24px Arial";
     ctx.fillText("I WILL BE",450,950);
@@ -166,10 +174,11 @@ if(profileImg.src){
     ctx.fillText("EACOSH CONFERENCE 2026",450,1040);
 }
 
-/* 🔥 INITIAL DRAW */
+/* INITIAL DRAW */
+bg.onload = draw;
 draw();
 
-/* EVENTS */
+/* INPUT EVENTS */
 document.getElementById("name").oninput = e=>{
     nameText = e.target.value || "Your Name";
     draw();
@@ -189,25 +198,28 @@ document.getElementById("circleSize").oninput = e=>{
     circleSize = e.target.value;
     draw();
 };
-document.getElementById("imgOffsetX").oninput = e=>{
-    imgOffsetX = parseInt(e.target.value);
+
+document.getElementById("zoom").oninput = e=>{
+    zoom = parseFloat(e.target.value);
     draw();
 };
 
-document.getElementById("imgOffsetY").oninput = e=>{
-    imgOffsetY = parseInt(e.target.value);
-    draw();
-};
-
-/* IMAGE UPLOAD */
+/* IMAGE UPLOAD (LOCAL ONLY) */
 document.getElementById("upload").addEventListener("change", e=>{
+    let file = e.target.files[0];
+    if(!file) return;
+
     let reader = new FileReader();
     reader.onload = ev=>{
         profileImg = new Image();
-        profileImg.onload = draw;
+        profileImg.onload = ()=>{
+            imageLoaded = true;
+            imgOffset = {x:0, y:0}; // reset position
+            draw();
+        };
         profileImg.src = ev.target.result;
     };
-    reader.readAsDataURL(e.target.files[0]);
+    reader.readAsDataURL(file);
 });
 
 /* DRAG SYSTEM */
@@ -216,19 +228,22 @@ canvas.addEventListener("mousedown", e=>{
     let x = e.clientX - rect.left;
     let y = e.clientY - rect.top;
 
-    selected = null;
+    lastX = x;
+    lastY = y;
+
+    dragType = null;
 
     if(Math.abs(x-namePos.x)<150 && Math.abs(y-namePos.y)<40){
-        selected="name";
+        dragType = "name";
     }
     else if(Math.abs(x-titlePos.x)<150 && Math.abs(y-titlePos.y)<40){
-        selected="title";
+        dragType = "title";
     }
     else if(Math.hypot(x-imagePos.x,y-imagePos.y)<circleSize/2){
-        selected="image";
+        dragType = "image";
     }
 
-    if(selected) dragging=true;
+    if(dragType) dragging = true;
 });
 
 canvas.addEventListener("mousemove", e=>{
@@ -238,30 +253,37 @@ canvas.addEventListener("mousemove", e=>{
     let x = e.clientX - rect.left;
     let y = e.clientY - rect.top;
 
-    if(selected==="name"){
-        namePos.x=x; namePos.y=y;
+    let dx = x - lastX;
+    let dy = y - lastY;
+
+    if(dragType==="name"){
+        namePos.x += dx;
+        namePos.y += dy;
     }
-    if(selected==="title"){
-        titlePos.x=x; titlePos.y=y;
+    else if(dragType==="title"){
+        titlePos.x += dx;
+        titlePos.y += dy;
     }
-    if(selected==="image"){
-        imagePos.x=x; imagePos.y=y;
+    else if(dragType==="image"){
+        imgOffset.x += dx;
+        imgOffset.y += dy;
     }
-if(selected==="image"){
-    imgOffsetX += (x - imagePos.x) * 0.05;
-    imgOffsetY += (y - imagePos.y) * 0.05;
-}
+
+    lastX = x;
+    lastY = y;
+
     draw();
 });
 
 canvas.addEventListener("mouseup", ()=> dragging=false);
+canvas.addEventListener("mouseleave", ()=> dragging=false);
 
 /* DOWNLOAD */
 let count=0;
 function downloadPoster(){
     let link=document.createElement("a");
     link.download="poster.png";
-    link.href=canvas.toDataURL();
+    link.href=canvas.toDataURL("image/png");
     link.click();
 
     count++;
