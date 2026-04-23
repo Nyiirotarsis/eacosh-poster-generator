@@ -3,85 +3,76 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EACOSH 2026 Poster Generator</title>
+<title>EACOSH Poster Generator</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
-body { background: #fff8f0; }
+body { background:#fff8f0; }
 
 .header {
-    background: linear-gradient(90deg, #d4af37, #198754);
-    color: white;
-    padding: 15px 20px;
+    background: linear-gradient(90deg,#d4af37,#198754);
+    color:white;
+    padding:15px;
 }
 
 .sidebar {
-    height: calc(100vh - 80px);
-    overflow-y: auto;
-    border-right: 1px solid #ddd;
-    background: #fff;
+    height:100vh;
+    overflow:auto;
+    background:#fff;
+    border-right:1px solid #ddd;
 }
 
 canvas {
-    border: 3px solid #d4af37;
-    width: 100%;
-    max-width: 600px;
-    border-radius: 12px;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-}
-
-.tool-label {
-    font-weight: 600;
-    margin-top: 10px;
-    color: #b36b00;
+    border:3px solid #d4af37;
+    max-width:600px;
+    width:100%;
+    border-radius:12px;
+    cursor:grab;
 }
 </style>
 </head>
 
 <body>
 
-<div class="header d-flex justify-content-between align-items-center">
-    <h5 class="mb-0">INAUGURAL EACOSH CONFERENCE 2026</h5>
-    <button class="btn btn-dark" onclick="downloadPoster()">Download Poster</button>
+<div class="header d-flex justify-content-between">
+<h5>INAUGURAL EACOSH CONFERENCE 2026</h5>
+<button class="btn btn-dark" onclick="downloadPoster()">Download</button>
 </div>
 
 <div class="container-fluid">
 <div class="row">
 
+<!-- SIDEBAR -->
 <div class="col-md-3 sidebar p-3">
 
-<h5>Editor Tools</h5>
+<h5>Editor</h5>
 
 <p><strong>Posters Created:</strong> <span id="count">0</span></p>
 
-<label class="tool-label">Full Name</label>
-<input type="text" id="name" class="form-control mb-3">
+<label>Full Name</label>
+<input type="text" id="name" class="form-control mb-2">
 
-<label class="tool-label">Title / Designation</label>
-<input type="text" id="title" class="form-control mb-3">
+<label>Title</label>
+<input type="text" id="title" class="form-control mb-2">
 
-<label class="tool-label">Font</label>
-<select id="font" class="form-select mb-2">
-<option>Arial</option>
-<option>Georgia</option>
-<option>Poppins</option>
-<option>Courier New</option>
-</select>
+<label>Font Size</label>
+<input type="range" id="fontSize" min="20" max="80" value="50">
 
-<label class="tool-label">Name Font Size</label>
-<input type="range" id="fontSize" min="30" max="80" value="50" class="form-range">
+<label>Upload Photo</label>
+<input type="file" id="upload" class="form-control mb-2">
 
-<label class="tool-label">Upload Profile Photo</label>
-<input type="file" id="upload" class="form-control mb-3">
+<label>Photo Size</label>
+<input type="range" id="circleSize" min="100" max="300" value="180">
+<label>Image Position X</label>
+<input type="range" id="imgOffsetX" min="-200" max="200" value="0" class="form-range">
 
-<label class="tool-label">Photo Size</label>
-<input type="range" id="circleSize" min="100" max="300" value="180" class="form-range">
-
+<label>Image Position Y</label>
+<input type="range" id="imgOffsetY" min="-200" max="200" value="0" class="form-range">
 </div>
 
-<div class="col-md-9 d-flex flex-column align-items-center justify-content-center">
-<h5 class="mt-3">Preview</h5>
+<!-- CANVAS -->
+<div class="col-md-9 d-flex justify-content-center align-items-center">
 <canvas id="canvas" width="900" height="1200"></canvas>
 </div>
 
@@ -89,137 +80,192 @@ canvas {
 </div>
 
 <script>
+let imgOffsetX = 0;
+let imgOffsetY = 0;
+let zoom = 1;
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-let profileImg = new Image();
-let bgImage = new Image();
-
-/* ✅ IMPORTANT: correct file name */
-bgImage.crossOrigin = "anonymous";
-bgImage.src = "https://nyiirotarsis.github.io/eacosh-poster-generator/poster-bg.jpg.jpeg?v=" + new Date().getTime();
-
-let name = "";
-let title = "";
+/* STATE */
+let nameText = "Your Name";
+let titleText = "Your Title";
 let fontSize = 50;
+
+let profileImg = new Image();
+let bg = new Image();
+
+/* 🔥 USE RAW GITHUB IMAGE (IMPORTANT FIX) */
+bg.crossOrigin = "anonymous";
+bg.src = "https://raw.githubusercontent.com/Nyiirotarsis/eacosh-poster-generator/main/poster-bg.jpg.jpeg";
+
+/* POSITION (for drag system) */
+let namePos = {x:450,y:800};
+let titlePos = {x:450,y:860};
+let imagePos = {x:450,y:500};
+
 let circleSize = 180;
-let posterCount = 0;
 
-/* 🔥 DRAW FUNCTION */
-function draw() {
+/* DRAG */
+let selected = null;
+let dragging = false;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+/* DRAW */
+function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
 
-    /* 🖼 BACKGROUND (safe render) */
-    if (bgImage.complete && bgImage.naturalWidth > 0) {
-        ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
-    } else {
-        // fallback so nothing breaks
-        let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        gradient.addColorStop(0, "#d4af37");
-        gradient.addColorStop(1, "#198754");
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    /* BACKGROUND */
+    if(bg.complete){
+        ctx.drawImage(bg,0,0,canvas.width,canvas.height);
     }
 
-    /* 🔲 OVERLAY (improves readability) */
-    ctx.fillStyle = "rgba(255,255,255,0.7)";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    /* OVERLAY */
+    ctx.fillStyle="rgba(255,255,255,0.6)";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
 
-    /* 👤 PROFILE IMAGE */
-    if (profileImg.src && profileImg.complete) {
-        let y = 500;
+    /* IMAGE */
+if(profileImg.src){
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(imagePos.x, imagePos.y, circleSize/2, 0, Math.PI*2);
+    ctx.clip();
 
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(canvas.width / 2, y, circleSize / 2, 0, Math.PI * 2);
-        ctx.clip();
-        ctx.drawImage(
-            profileImg,
-            (canvas.width/2)-(circleSize/2),
-            y-(circleSize/2),
-            circleSize,
-            circleSize
-        );
-        ctx.restore();
-    }
+    let size = circleSize * zoom;
 
-    /* 🧑 NAME */
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#000";
-    ctx.font = "bold " + fontSize + "px " + document.getElementById("font").value;
-    ctx.fillText(name || "Your Name", canvas.width / 2, 780);
+    ctx.drawImage(
+        profileImg,
+        imagePos.x - size/2 + imgOffsetX,
+        imagePos.y - size/2 + imgOffsetY,
+        size,
+        size
+    );
 
-    /* 🧾 TITLE */
-    ctx.fillStyle = "#198754";
-    ctx.font = "italic 28px Arial";
-    ctx.fillText(title || "Your Title", canvas.width / 2, 830);
+    ctx.restore();
+}
+    /* NAME */
+    ctx.textAlign="center";
+    ctx.fillStyle="#000";
+    ctx.font="bold "+fontSize+"px Arial";
+    ctx.fillText(nameText,namePos.x,namePos.y);
 
-    /* 🎤 ATTENDING */
-    ctx.fillStyle = "#000";
-    ctx.font = "italic 24px Arial";
-    ctx.fillText("I WILL BE", canvas.width / 2, 900);
+    /* TITLE */
+    ctx.fillStyle="#198754";
+    ctx.font="italic 30px Arial";
+    ctx.fillText(titleText,titlePos.x,titlePos.y);
 
-    ctx.fillStyle = "#198754";
-    ctx.font = "bold 34px Arial";
-    ctx.fillText("ATTENDING", canvas.width / 2, 950);
+    /* STATIC TEXT */
+    ctx.fillStyle="#000";
+    ctx.font="italic 24px Arial";
+    ctx.fillText("I WILL BE",450,950);
 
-    ctx.fillStyle = "#000";
-    ctx.font = "bold 22px Arial";
-    ctx.fillText("EACOSH CONFERENCE 2026", canvas.width / 2, 1000);
+    ctx.fillStyle="#198754";
+    ctx.font="bold 34px Arial";
+    ctx.fillText("ATTENDING",450,1000);
+
+    ctx.fillStyle="#000";
+    ctx.font="bold 22px Arial";
+    ctx.fillText("EACOSH CONFERENCE 2026",450,1040);
 }
 
-/* 🚀 SAFE INITIAL LOAD */
-draw(); // fallback immediately
-
-bgImage.onload = function () {
-    draw(); // redraw with image
-};
-
-bgImage.onerror = function () {
-    console.log("❌ Background failed to load");
-};
+/* 🔥 INITIAL DRAW */
+draw();
 
 /* EVENTS */
-document.getElementById("upload").addEventListener("change", function(e){
-    const reader = new FileReader();
-    reader.onload = function(event){
+document.getElementById("name").oninput = e=>{
+    nameText = e.target.value || "Your Name";
+    draw();
+};
+
+document.getElementById("title").oninput = e=>{
+    titleText = e.target.value || "Your Title";
+    draw();
+};
+
+document.getElementById("fontSize").oninput = e=>{
+    fontSize = e.target.value;
+    draw();
+};
+
+document.getElementById("circleSize").oninput = e=>{
+    circleSize = e.target.value;
+    draw();
+};
+document.getElementById("imgOffsetX").oninput = e=>{
+    imgOffsetX = parseInt(e.target.value);
+    draw();
+};
+
+document.getElementById("imgOffsetY").oninput = e=>{
+    imgOffsetY = parseInt(e.target.value);
+    draw();
+};
+
+/* IMAGE UPLOAD */
+document.getElementById("upload").addEventListener("change", e=>{
+    let reader = new FileReader();
+    reader.onload = ev=>{
         profileImg = new Image();
         profileImg.onload = draw;
-        profileImg.src = event.target.result;
+        profileImg.src = ev.target.result;
     };
     reader.readAsDataURL(e.target.files[0]);
 });
 
-document.getElementById("name").addEventListener("input", function(e){
-    name = e.target.value;
+/* DRAG SYSTEM */
+canvas.addEventListener("mousedown", e=>{
+    let rect = canvas.getBoundingClientRect();
+    let x = e.clientX - rect.left;
+    let y = e.clientY - rect.top;
+
+    selected = null;
+
+    if(Math.abs(x-namePos.x)<150 && Math.abs(y-namePos.y)<40){
+        selected="name";
+    }
+    else if(Math.abs(x-titlePos.x)<150 && Math.abs(y-titlePos.y)<40){
+        selected="title";
+    }
+    else if(Math.hypot(x-imagePos.x,y-imagePos.y)<circleSize/2){
+        selected="image";
+    }
+
+    if(selected) dragging=true;
+});
+
+canvas.addEventListener("mousemove", e=>{
+    if(!dragging) return;
+
+    let rect = canvas.getBoundingClientRect();
+    let x = e.clientX - rect.left;
+    let y = e.clientY - rect.top;
+
+    if(selected==="name"){
+        namePos.x=x; namePos.y=y;
+    }
+    if(selected==="title"){
+        titlePos.x=x; titlePos.y=y;
+    }
+    if(selected==="image"){
+        imagePos.x=x; imagePos.y=y;
+    }
+if(selected==="image"){
+    imgOffsetX += (x - imagePos.x) * 0.05;
+    imgOffsetY += (y - imagePos.y) * 0.05;
+}
     draw();
 });
 
-document.getElementById("title").addEventListener("input", function(e){
-    title = e.target.value;
-    draw();
-});
-
-document.getElementById("fontSize").addEventListener("input", function(e){
-    fontSize = e.target.value;
-    draw();
-});
-
-document.getElementById("circleSize").addEventListener("input", function(e){
-    circleSize = e.target.value;
-    draw();
-});
+canvas.addEventListener("mouseup", ()=> dragging=false);
 
 /* DOWNLOAD */
+let count=0;
 function downloadPoster(){
-    const link = document.createElement("a");
-    link.download = "EACOSH-Poster.png";
-    link.href = canvas.toDataURL("image/png");
+    let link=document.createElement("a");
+    link.download="poster.png";
+    link.href=canvas.toDataURL();
     link.click();
 
-    posterCount++;
-    document.getElementById("count").innerText = posterCount;
+    count++;
+    document.getElementById("count").innerText=count;
 }
 </script>
 
