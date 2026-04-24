@@ -71,6 +71,18 @@ canvas:active {
 <label>Zoom Image</label>
 <input type="range" id="zoom" min="0.5" max="2" step="0.1" value="1">
 
+<hr>
+
+<label><b>Fine Adjust Position</b></label>
+
+<label>X Position</label>
+<input type="range" id="imgX" min="-300" max="300" value="0" class="form-range">
+
+<label>Y Position</label>
+<input type="range" id="imgY" min="-300" max="300" value="0" class="form-range">
+
+<button class="btn btn-sm btn-secondary mt-2 w-100" onclick="resetImage()">Reset Image</button>
+
 </div>
 
 <!-- CANVAS -->
@@ -90,7 +102,6 @@ let nameText = "Your Name";
 let titleText = "Your Title";
 let fontSize = 50;
 let circleSize = 180;
-
 let zoom = 1;
 
 /* IMAGE */
@@ -107,7 +118,7 @@ let namePos = {x:450,y:800};
 let titlePos = {x:450,y:860};
 let imagePos = {x:450,y:500};
 
-/* IMAGE DRAG OFFSET (inside circle) */
+/* OFFSET (INSIDE CIRCLE) */
 let imgOffset = {x:0, y:0};
 
 /* DRAGGING */
@@ -120,16 +131,14 @@ let lastY = 0;
 function draw(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
 
-    /* BACKGROUND */
     if(bg.complete){
         ctx.drawImage(bg,0,0,canvas.width,canvas.height);
     }
 
-    /* OVERLAY */
     ctx.fillStyle="rgba(255,255,255,0.6)";
     ctx.fillRect(0,0,canvas.width,canvas.height);
 
-    /* IMAGE IN CIRCLE */
+    /* IMAGE */
     if(imageLoaded){
         ctx.save();
         ctx.beginPath();
@@ -160,7 +169,7 @@ function draw(){
     ctx.font="italic 30px Arial";
     ctx.fillText(titleText, titlePos.x, titlePos.y);
 
-    /* STATIC */
+    /* STATIC TEXT */
     ctx.fillStyle="#000";
     ctx.font="italic 24px Arial";
     ctx.fillText("I WILL BE",450,950);
@@ -174,11 +183,11 @@ function draw(){
     ctx.fillText("EACOSH CONFERENCE 2026",450,1040);
 }
 
-/* INITIAL DRAW */
+/* INIT */
 bg.onload = draw;
 draw();
 
-/* INPUT EVENTS */
+/* INPUTS */
 document.getElementById("name").oninput = e=>{
     nameText = e.target.value || "Your Name";
     draw();
@@ -204,7 +213,26 @@ document.getElementById("zoom").oninput = e=>{
     draw();
 };
 
-/* IMAGE UPLOAD (LOCAL ONLY) */
+/* POSITION SLIDERS */
+document.getElementById("imgX").oninput = e=>{
+    imgOffset.x = parseInt(e.target.value);
+    draw();
+};
+
+document.getElementById("imgY").oninput = e=>{
+    imgOffset.y = parseInt(e.target.value);
+    draw();
+};
+
+/* RESET */
+function resetImage(){
+    imgOffset = {x:0, y:0};
+    document.getElementById("imgX").value = 0;
+    document.getElementById("imgY").value = 0;
+    draw();
+}
+
+/* UPLOAD */
 document.getElementById("upload").addEventListener("change", e=>{
     let file = e.target.files[0];
     if(!file) return;
@@ -214,15 +242,14 @@ document.getElementById("upload").addEventListener("change", e=>{
         profileImg = new Image();
         profileImg.onload = ()=>{
             imageLoaded = true;
-            imgOffset = {x:0, y:0}; // reset position
-            draw();
+            resetImage();
         };
         profileImg.src = ev.target.result;
     };
     reader.readAsDataURL(file);
 });
 
-/* DRAG SYSTEM */
+/* DRAG */
 canvas.addEventListener("mousedown", e=>{
     let rect = canvas.getBoundingClientRect();
     let x = e.clientX - rect.left;
@@ -267,6 +294,10 @@ canvas.addEventListener("mousemove", e=>{
     else if(dragType==="image"){
         imgOffset.x += dx;
         imgOffset.y += dy;
+
+        /* sync sliders */
+        document.getElementById("imgX").value = imgOffset.x;
+        document.getElementById("imgY").value = imgOffset.y;
     }
 
     lastX = x;
