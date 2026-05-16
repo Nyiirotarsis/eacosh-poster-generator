@@ -30,9 +30,7 @@ canvas {
     border-radius:12px;
     cursor:grab;
 }
-canvas:active {
-    cursor:grabbing;
-}
+canvas:active { cursor:grabbing; }
 </style>
 </head>
 
@@ -65,21 +63,21 @@ canvas:active {
 <label>Upload Photo</label>
 <input type="file" id="upload" class="form-control mb-2">
 
-<label>Photo Size</label>
-<input type="range" id="circleSize" min="100" max="300" value="180">
-
 <label>Zoom Image</label>
 <input type="range" id="zoom" min="0.5" max="2" step="0.1" value="1">
 
 <hr>
 
-<label><b>Fine Adjust Position</b></label>
+<label><b>Circle Size</b></label>
+<input type="range" id="circleSize" min="150" max="350" value="260">
+
+<label><b>Adjust Image Inside Circle</b></label>
 
 <label>X Position</label>
-<input type="range" id="imgX" min="-300" max="300" value="0" class="form-range">
+<input type="range" id="imgX" min="-300" max="300" value="0">
 
 <label>Y Position</label>
-<input type="range" id="imgY" min="-300" max="300" value="0" class="form-range">
+<input type="range" id="imgY" min="-300" max="300" value="0">
 
 <button class="btn btn-sm btn-secondary mt-2 w-100" onclick="resetImage()">Reset Image</button>
 
@@ -98,10 +96,9 @@ const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
 /* STATE */
-let nameText = "Your Name";
-let titleText = "Your Title";
+let nameText = "";
+let titleText = "";
 let fontSize = 50;
-let circleSize = 180;
 let zoom = 1;
 
 /* IMAGE */
@@ -111,19 +108,22 @@ let imageLoaded = false;
 /* BACKGROUND */
 let bg = new Image();
 bg.crossOrigin = "anonymous";
-bg.src = "https://raw.githubusercontent.com/Nyiirotarsis/eacosh-poster-generator/main/poster-bg.jpg.jpeg";
+bg.src = "https://raw.githubusercontent.com/Nyiirotarsis/eacosh-poster-generator/main/poster-bg.jpg.jpeg.jpeg";
 
-/* POSITIONS */
-let namePos = {x:450,y:800};
-let titlePos = {x:450,y:860};
-let imagePos = {x:450,y:500};
+/* 🎯 POSITION FIX (RAISED UP) */
+let imagePos = {x:700, y:460}; // ⬅️ moved UP from 520 → 460
 
-/* OFFSET (INSIDE CIRCLE) */
+let circleSize = 260;
+
+/* OFFSET */
 let imgOffset = {x:0, y:0};
 
-/* DRAGGING */
+/* TEXT POS */
+let namePos = {x:450,y:800};
+let titlePos = {x:450,y:860};
+
+/* DRAG */
 let dragging = false;
-let dragType = null;
 let lastX = 0;
 let lastY = 0;
 
@@ -156,31 +156,38 @@ function draw(){
         );
 
         ctx.restore();
+
+        /* BORDER */
+        ctx.beginPath();
+        ctx.arc(imagePos.x, imagePos.y, circleSize/2 + 4, 0, Math.PI*2);
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 6;
+        ctx.stroke();
     }
 
     /* NAME */
     ctx.textAlign="center";
     ctx.fillStyle="#000";
     ctx.font="bold "+fontSize+"px Arial";
-    ctx.fillText(nameText, namePos.x, namePos.y);
+    if(nameText) ctx.fillText(nameText, namePos.x, namePos.y);
 
     /* TITLE */
     ctx.fillStyle="#198754";
     ctx.font="italic 30px Arial";
-    ctx.fillText(titleText, titlePos.x, titlePos.y);
+    if(titleText) ctx.fillText(titleText, titlePos.x, titlePos.y);
 
-    /* STATIC TEXT */
-    ctx.fillStyle="#000";
+    /* STATIC */
+   /* ctx.fillStyle="#000";
     ctx.font="italic 24px Arial";
-    ctx.fillText("I WILL BE",450,950);
+    ctx.fillText("I WILL BE",450,950);*/
 
-    ctx.fillStyle="#198754";
+   /* ctx.fillStyle="#198754";
     ctx.font="bold 34px Arial";
     ctx.fillText("ATTENDING",450,1000);
 
     ctx.fillStyle="#000";
     ctx.font="bold 22px Arial";
-    ctx.fillText("EACOSH CONFERENCE 2026",450,1040);
+    ctx.fillText("EACOSH CONFERENCE 2026",450,1040);*/
 }
 
 /* INIT */
@@ -189,12 +196,12 @@ draw();
 
 /* INPUTS */
 document.getElementById("name").oninput = e=>{
-    nameText = e.target.value || "Your Name";
+    nameText = e.target.value;
     draw();
 };
 
 document.getElementById("title").oninput = e=>{
-    titleText = e.target.value || "Your Title";
+    titleText = e.target.value;
     draw();
 };
 
@@ -203,17 +210,18 @@ document.getElementById("fontSize").oninput = e=>{
     draw();
 };
 
-document.getElementById("circleSize").oninput = e=>{
-    circleSize = e.target.value;
-    draw();
-};
-
 document.getElementById("zoom").oninput = e=>{
     zoom = parseFloat(e.target.value);
     draw();
 };
 
-/* POSITION SLIDERS */
+/* 🎯 NEW: CIRCLE SIZE TOOL */
+document.getElementById("circleSize").oninput = e=>{
+    circleSize = parseInt(e.target.value);
+    draw();
+};
+
+/* POSITION */
 document.getElementById("imgX").oninput = e=>{
     imgOffset.x = parseInt(e.target.value);
     draw();
@@ -249,28 +257,17 @@ document.getElementById("upload").addEventListener("change", e=>{
     reader.readAsDataURL(file);
 });
 
-/* DRAG */
+/* DRAG IMAGE INSIDE CIRCLE */
 canvas.addEventListener("mousedown", e=>{
     let rect = canvas.getBoundingClientRect();
     let x = e.clientX - rect.left;
     let y = e.clientY - rect.top;
 
-    lastX = x;
-    lastY = y;
-
-    dragType = null;
-
-    if(Math.abs(x-namePos.x)<150 && Math.abs(y-namePos.y)<40){
-        dragType = "name";
+    if(Math.hypot(x-imagePos.x,y-imagePos.y) < circleSize/2){
+        dragging = true;
+        lastX = x;
+        lastY = y;
     }
-    else if(Math.abs(x-titlePos.x)<150 && Math.abs(y-titlePos.y)<40){
-        dragType = "title";
-    }
-    else if(Math.hypot(x-imagePos.x,y-imagePos.y)<circleSize/2){
-        dragType = "image";
-    }
-
-    if(dragType) dragging = true;
 });
 
 canvas.addEventListener("mousemove", e=>{
@@ -283,22 +280,11 @@ canvas.addEventListener("mousemove", e=>{
     let dx = x - lastX;
     let dy = y - lastY;
 
-    if(dragType==="name"){
-        namePos.x += dx;
-        namePos.y += dy;
-    }
-    else if(dragType==="title"){
-        titlePos.x += dx;
-        titlePos.y += dy;
-    }
-    else if(dragType==="image"){
-        imgOffset.x += dx;
-        imgOffset.y += dy;
+    imgOffset.x += dx;
+    imgOffset.y += dy;
 
-        /* sync sliders */
-        document.getElementById("imgX").value = imgOffset.x;
-        document.getElementById("imgY").value = imgOffset.y;
-    }
+    document.getElementById("imgX").value = imgOffset.x;
+    document.getElementById("imgY").value = imgOffset.y;
 
     lastX = x;
     lastY = y;
