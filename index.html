@@ -69,7 +69,7 @@ canvas:active { cursor:grabbing; }
 <hr>
 
 <label><b>Circle Size</b></label>
-<input type="range" id="circleSize" min="150" max="350" value="260">
+<input type="range" id="circleSize" min="180" max="350" value="260">
 
 <label><b>Adjust Image Inside Circle</b></label>
 
@@ -105,13 +105,16 @@ let zoom = 1;
 let profileImg = new Image();
 let imageLoaded = false;
 
-/* BACKGROUND */
+/* BACKGROUND (UNCHANGED) */
 let bg = new Image();
 bg.crossOrigin = "anonymous";
 bg.src = "https://raw.githubusercontent.com/Nyiirotarsis/eacosh-poster-generator/main/poster-bg.jpg.jpeg.jpeg";
 
-/* 🎯 POSITION FIX (RAISED UP) */
-let imagePos = {x:700, y:460}; // ⬅️ moved UP from 520 → 460
+/* 🎯 FINAL TUNED POSITION (LEFT + UP PERFECT FIT) */
+let imagePos = {
+    x: 620,   // ⬅️ pushed LEFT from 700 → 620
+    y: 420    // ⬆️ raised from 460 → 420
+};
 
 let circleSize = 260;
 
@@ -131,12 +134,10 @@ let lastY = 0;
 function draw(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
 
+    /* CLEAN BACKGROUND (NO OVERLAY) */
     if(bg.complete){
         ctx.drawImage(bg,0,0,canvas.width,canvas.height);
     }
-
-    ctx.fillStyle="rgba(255,255,255,0.6)";
-    ctx.fillRect(0,0,canvas.width,canvas.height);
 
     /* IMAGE */
     if(imageLoaded){
@@ -160,7 +161,7 @@ function draw(){
         /* BORDER */
         ctx.beginPath();
         ctx.arc(imagePos.x, imagePos.y, circleSize/2 + 4, 0, Math.PI*2);
-        ctx.strokeStyle = "#fff";
+        ctx.strokeStyle = "#ffffff";
         ctx.lineWidth = 6;
         ctx.stroke();
     }
@@ -175,19 +176,6 @@ function draw(){
     ctx.fillStyle="#198754";
     ctx.font="italic 30px Arial";
     if(titleText) ctx.fillText(titleText, titlePos.x, titlePos.y);
-
-    /* STATIC */
-   /* ctx.fillStyle="#000";
-    ctx.font="italic 24px Arial";
-    ctx.fillText("I WILL BE",450,950);*/
-
-   /* ctx.fillStyle="#198754";
-    ctx.font="bold 34px Arial";
-    ctx.fillText("ATTENDING",450,1000);
-
-    ctx.fillStyle="#000";
-    ctx.font="bold 22px Arial";
-    ctx.fillText("EACOSH CONFERENCE 2026",450,1040);*/
 }
 
 /* INIT */
@@ -215,13 +203,11 @@ document.getElementById("zoom").oninput = e=>{
     draw();
 };
 
-/* 🎯 NEW: CIRCLE SIZE TOOL */
 document.getElementById("circleSize").oninput = e=>{
     circleSize = parseInt(e.target.value);
     draw();
 };
 
-/* POSITION */
 document.getElementById("imgX").oninput = e=>{
     imgOffset.x = parseInt(e.target.value);
     draw();
@@ -257,7 +243,7 @@ document.getElementById("upload").addEventListener("change", e=>{
     reader.readAsDataURL(file);
 });
 
-/* DRAG IMAGE INSIDE CIRCLE */
+/* DRAG INSIDE CIRCLE */
 canvas.addEventListener("mousedown", e=>{
     let rect = canvas.getBoundingClientRect();
     let x = e.clientX - rect.left;
